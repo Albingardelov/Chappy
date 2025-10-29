@@ -1,0 +1,11 @@
+Påminnelse: Committa auth-systemet i chappy-v2 projektet
+Kommandot att köra om en timme:
+git commit -m \
+feat:
+implement
+authentication
+system
+with
+JWT\
+
+Nästa steg efter commit: Lägg till channels API
