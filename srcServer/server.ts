@@ -6,6 +6,7 @@ import { authMiddleware } from './data/auth.js'
 import registerRouter from './routes/register.js'
 import loginRouter from './routes/login.js'
 import channelsRouter from './routes/channels.js'
+import messagesRouter from './routes/messages.js'
 
 // Konfiguration
 const app: Express = express()
@@ -22,6 +23,9 @@ app.use('/api/login', loginRouter)
 
 // Channels routes
 app.use('/api/channels', channelsRouter)
+
+// Messages routes (shares /api/channels prefix)
+app.use('/api/channels', messagesRouter)
 
 // Debug routes
 app.get('/api/ping', (req: Request, res: Response) => {
