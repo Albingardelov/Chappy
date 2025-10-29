@@ -7,6 +7,7 @@ import registerRouter from './routes/register.js'
 import loginRouter from './routes/login.js'
 import channelsRouter from './routes/channels.js'
 import messagesRouter from './routes/messages.js'
+import dmRouter from './routes/dm.js'
 
 // Konfiguration
 const app: Express = express()
@@ -26,6 +27,9 @@ app.use('/api/channels', channelsRouter)
 
 // Messages routes (shares /api/channels prefix)
 app.use('/api/channels', messagesRouter)
+
+// DM routes
+app.use('/api/dm', dmRouter)
 
 // Debug routes
 app.get('/api/ping', (req: Request, res: Response) => {
