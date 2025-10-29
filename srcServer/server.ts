@@ -8,6 +8,8 @@ import loginRouter from './routes/login.js'
 import channelsRouter from './routes/channels.js'
 import messagesRouter from './routes/messages.js'
 import dmRouter from './routes/dm.js'
+import conversationsRouter from './routes/conversations.js'
+import usersRouter from './routes/users.js'
 
 // Konfiguration
 const app: Express = express()
@@ -30,6 +32,12 @@ app.use('/api/channels', messagesRouter)
 
 // DM routes
 app.use('/api/dm', dmRouter)
+
+// Conversations routes
+app.use('/api/conversations', conversationsRouter)
+
+// Users routes
+app.use('/api/users', usersRouter)
 
 // Debug routes
 app.get('/api/ping', (req: Request, res: Response) => {

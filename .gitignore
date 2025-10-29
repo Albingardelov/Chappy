@@ -31,3 +31,6 @@ logs
 
 # TypeScript
 *.tsbuildinfo
+
+# Local development notes
+TODO.md
