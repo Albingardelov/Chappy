@@ -5,6 +5,7 @@ import { logger } from './middleware.js'
 import { authMiddleware } from './data/auth.js'
 import registerRouter from './routes/register.js'
 import loginRouter from './routes/login.js'
+import channelsRouter from './routes/channels.js'
 
 // Konfiguration
 const app: Express = express()
@@ -18,6 +19,9 @@ app.use('/', logger)
 // Auth routes
 app.use('/api/register', registerRouter)
 app.use('/api/login', loginRouter)
+
+// Channels routes
+app.use('/api/channels', channelsRouter)
 
 // Debug routes
 app.get('/api/ping', (req: Request, res: Response) => {
