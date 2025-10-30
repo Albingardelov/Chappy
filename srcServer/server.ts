@@ -52,10 +52,8 @@ app.get('/api/protected', authMiddleware, (req: Request, res: Response) => {
 	})
 })
 
-app.listen(port, (error) => {
-	if( error ) {
-		console.log('Server could not start! ', error.message)
-	} else {
-		console.log(`Server is listening on port ${port}...`)
-	}
+app.listen(port, () => {
+	console.log(`Server is listening on port ${port}...`)
+}).on('error', (err) => {
+	console.log('Server could not start! ', (err as Error).message)
 })
