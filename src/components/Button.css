@@ -1,0 +1,42 @@
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--accent-blue);
+  color: white;
+}
+
+.btn-primary:hover:not(.btn-disabled) {
+  background-color: var(--accent-blue-hover);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--accent-blue);
+  border: 2px solid var(--accent-blue);
+}
+
+.btn-outline:hover:not(.btn-disabled) {
+  background-color: var(--accent-blue);
+  color: white;
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
