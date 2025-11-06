@@ -76,6 +76,12 @@ function ChatViewPage() {
   const handleSendMessage = async (e) => {
     e.preventDefault()
     if (!newMessage.trim() || !user) return
+    
+    // Gäster kan bara skicka meddelanden i kanaler, inte DM
+    if (type === 'dm' && user.isGuest) {
+      alert('Du måste vara inloggad för att skicka direktmeddelanden')
+      return
+    }
 
     const messageText = newMessage.trim()
     setNewMessage('') // Rensa input direkt för bättre UX

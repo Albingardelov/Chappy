@@ -1,6 +1,8 @@
 import express from 'express'
 import type { Express, Request, Response } from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { logger } from './middleware.js'
 import { authMiddleware } from './data/auth.js'
 import registerRouter from './routes/register.js'
@@ -14,6 +16,10 @@ import usersRouter from './routes/users.js'
 // Konfiguration
 const app: Express = express()
 const port: number = Number(process.env.PORT) || 1337
+
+// Hämta __dirname i ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Middleware
 app.use(cors())
@@ -50,6 +56,20 @@ app.get('/api/protected', authMiddleware, (req: Request, res: Response) => {
 		message: 'This is a protected route',
 		user: req.user 
 	})
+})
+
+// Servera statiska filer från dist-mappen (byggd frontend)
+const distPath = path.join(__dirname, '../../dist')
+app.use(express.static(distPath))
+
+// Alla routes som inte är /api/* ska servera index.html (för React Router)
+app.get('*', (req: Request, res: Response) => {
+	// Om det är en API-route, returnera 404
+	if (req.path.startsWith('/api')) {
+		return res.status(404).json({ error: 'API route not found' })
+	}
+	// Annars servera index.html
+	res.sendFile(path.join(distPath, 'index.html'))
 })
 
 app.listen(port, () => {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
 import { getConversations, createChannel, deleteChannel, deleteUser } from '../services/api'
 import ConversationItem from '../components/ConversationItem'
+import { getInitials, getColorFromName } from '../utils/initials'
 import './ChatOverviewPage.css'
 
 function ChatOverviewPage() {
@@ -107,20 +108,27 @@ function ChatOverviewPage() {
     <div className="chat-overview">
       <div className="chat-header">
         <div className="header-left">
-          <div 
-            className="profile-avatar clickable"
-            onClick={() => setShowProfileModal(true)}
-            title="Profilinställningar"
-          >
-            {user ? user.username.charAt(0).toUpperCase() : '👤'}
-          </div>
+          {user && !user.isGuest ? (
+            <div 
+              className="profile-avatar clickable"
+              onClick={() => setShowProfileModal(true)}
+              title="Profilinställningar"
+              style={{ backgroundColor: getColorFromName(user.username) }}
+            >
+              {getInitials(user.username, 2)}
+            </div>
+          ) : (
+            <div className="profile-avatar" title="Gäst">
+              👤
+            </div>
+          )}
           <h1>Chappy</h1>
         </div>
         {user && (
           <div className="user-info">
-            <span>Inloggad som: {user.username}</span>
+            <span>{user.isGuest ? 'Gäst' : `Inloggad som: ${user.username}`}</span>
             <button onClick={handleLogout} className="logout-btn">
-              Logga ut
+              {user.isGuest ? 'Avsluta' : 'Logga ut'}
             </button>
           </div>
         )}
@@ -138,8 +146,8 @@ function ChatOverviewPage() {
         ))}
       </div>
 
-      {/* Create Channel Button */}
-      {user && (
+      {/* Create Channel Button - only for authenticated users */}
+      {user && !user.isGuest && (
         <button 
           className="create-channel-btn"
           onClick={() => setShowCreateChannel(true)}
@@ -202,14 +210,17 @@ function ChatOverviewPage() {
         </div>
       )}
 
-      {/* Profile Modal */}
-      {showProfileModal && (
+      {/* Profile Modal - only for authenticated users */}
+      {showProfileModal && user && !user.isGuest && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Profilinställningar</h2>
             <div className="profile-info">
-              <div className="profile-avatar-large">
-                {user ? user.username.charAt(0).toUpperCase() : '👤'}
+              <div 
+                className="profile-avatar-large"
+                style={{ backgroundColor: user ? getColorFromName(user.username) : '#808080' }}
+              >
+                {user ? getInitials(user.username, 2) : '👤'}
               </div>
               <div className="profile-details">
                 <h3>{user?.username}</h3>

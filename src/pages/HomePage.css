@@ -31,3 +31,22 @@
   gap: 1rem;
 }
 
+.home-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.home-divider::before,
+.home-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.home-divider span {
+  padding: 0 1rem;
+}
+

@@ -70,11 +70,22 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const enterAsGuest = () => {
+    // Generera ett unikt gäst-ID
+    const guestId = 'GUEST_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    setUser({ 
+      username: 'Gäst', 
+      userId: guestId,
+      isGuest: true 
+    })
+  }
+
   const value = {
     user,
     login,
     register,
     logout,
+    enterAsGuest,
     loading
   }
 

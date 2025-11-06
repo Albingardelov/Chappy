@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:1337/api'
+// Använd relativ URL i production, annars localhost
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : 'http://localhost:1337/api'
 
 // Hjälpfunktion för att hämta token
 const getToken = () => localStorage.getItem('token')

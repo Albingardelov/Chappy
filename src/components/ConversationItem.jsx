@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { getInitials, getColorFromName } from '../utils/initials'
+import lockIcon from '../../assets/lock-white.svg'
 import './ConversationItem.css'
 
 function ConversationItem({ conversation, onClick, onDeleteChannel, currentUserId }) {
@@ -6,9 +8,11 @@ function ConversationItem({ conversation, onClick, onDeleteChannel, currentUserI
 
   const getIcon = () => {
     if (conversation.type === 'channel') {
-      return '👥' // Grupp-ikon för kanaler
+      // Visa initialer för kanaler
+      return getInitials(conversation.name, 2)
     } else {
-      return '👤' // Person-ikon för DM
+      // Visa initialer för DM (användarnamn)
+      return getInitials(conversation.name, 2)
     }
   }
 
@@ -27,15 +31,24 @@ function ConversationItem({ conversation, onClick, onDeleteChannel, currentUserI
     return conversation.type === 'channel' && conversation.createdBy === currentUserId
   }
 
+  const avatarColor = getColorFromName(conversation.name)
+
   return (
     <div className="conversation-item" onClick={onClick}>
-      <div className="conversation-avatar">
+      <div 
+        className="conversation-avatar"
+        style={{ backgroundColor: avatarColor }}
+      >
         {getIcon()}
       </div>
       <div className="conversation-content">
         <div className="conversation-name">
           {conversation.name}
-          {conversation.isLocked && <span className="locked-indicator">🔒</span>}
+          {conversation.isLocked && (
+            <span className="locked-indicator">
+              <img src={lockIcon} alt="Låst kanal" />
+            </span>
+          )}
         </div>
         {conversation.lastMessage && (
           <div className="conversation-preview">

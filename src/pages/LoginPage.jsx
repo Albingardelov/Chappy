@@ -13,7 +13,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login } = useAuth()
+  const { login, enterAsGuest } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -71,6 +71,21 @@ function LoginPage() {
         <p className="auth-link">
           Har du inget konto? <Link to="/register">Registrera dig</Link>
         </p>
+        
+        <div className="auth-divider">
+          <span>eller</span>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          fullWidth 
+          onClick={() => {
+            enterAsGuest()
+            navigate('/chat')
+          }}
+        >
+          Chatta som gäst
+        </Button>
       </div>
     </div>
   )
