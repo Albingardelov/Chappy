@@ -9,7 +9,7 @@
     "start-server": "node --env-file .env ./distServer/server.js",
     "restart-server": "npm run build-server && npm run start-server",
     "dev": "vite",
-    "build-frontend": "tsc -b && vite build",
+    "build-frontend": "vite build",
     "predeploy": "npm run build-frontend && npm run build-server",
     "start": "node --env-file .env ./distServer/server.js",
     "preview": "vite preview"
