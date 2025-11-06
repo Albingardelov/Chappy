@@ -102,8 +102,6 @@ function ChatOverviewPage() {
   }
 
   const handleSearchUsers = async () => {
-    if (!user || user.isGuest) return
-    
     setShowUserSearch(true)
     setLoadingUsers(true)
     try {
@@ -118,6 +116,11 @@ function ChatOverviewPage() {
   }
 
   const handleStartDM = (username) => {
+    // Gäster kan inte starta DM
+    if (user?.isGuest) {
+      return
+    }
+    
     setShowUserSearch(false)
     setSearchQuery('')
     navigate(`/chat/dm/${username}`)
@@ -166,19 +169,27 @@ function ChatOverviewPage() {
       </div>
       
       <div className="conversations-list">
-        {conversations.map((conversation) => (
-          <ConversationItem
-            key={`${conversation.type}-${conversation.id}`}
-            conversation={conversation}
-            onClick={() => handleConversationClick(conversation)}
-            onDeleteChannel={handleDeleteChannelClick}
-            currentUserId={user?.userId}
-          />
-        ))}
+        {conversations
+          .filter(conversation => {
+            // Dölj DM-konversationer för gäster
+            if (conversation.type === 'dm' && user?.isGuest) {
+              return false
+            }
+            return true
+          })
+          .map((conversation) => (
+            <ConversationItem
+              key={`${conversation.type}-${conversation.id}`}
+              conversation={conversation}
+              onClick={() => handleConversationClick(conversation)}
+              onDeleteChannel={handleDeleteChannelClick}
+              currentUserId={user?.userId}
+            />
+          ))}
       </div>
 
-      {/* Action Buttons - only for authenticated users */}
-      {user && !user.isGuest && (
+      {/* Action Buttons */}
+      {user && (
         <div className="action-buttons">
           <button 
             className="search-users-btn"
@@ -187,13 +198,15 @@ function ChatOverviewPage() {
           >
             <img src={userIcon} alt="Sök användare" />
           </button>
-          <button 
-            className="create-channel-btn"
-            onClick={() => setShowCreateChannel(true)}
-            title="Skapa ny kanal"
-          >
-            +
-          </button>
+          {!user.isGuest && (
+            <button 
+              className="create-channel-btn"
+              onClick={() => setShowCreateChannel(true)}
+              title="Skapa ny kanal"
+            >
+              +
+            </button>
+          )}
         </div>
       )}
 
@@ -330,7 +343,7 @@ function ChatOverviewPage() {
       )}
 
       {/* User Search Modal */}
-      {showUserSearch && user && !user.isGuest && (
+      {showUserSearch && user && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Sök användare</h2>
@@ -357,8 +370,9 @@ function ChatOverviewPage() {
                   filteredUsers.map((userItem) => (
                     <div
                       key={userItem.username}
-                      className="user-item"
+                      className={`user-item ${user?.isGuest ? 'user-item-disabled' : ''}`}
                       onClick={() => handleStartDM(userItem.username)}
+                      title={user?.isGuest ? 'Logga in för att skicka DM' : `Skicka DM till ${userItem.username}`}
                     >
                       <div 
                         className="user-avatar"
@@ -367,6 +381,9 @@ function ChatOverviewPage() {
                         {getInitials(userItem.username, 2)}
                       </div>
                       <span className="user-name">{userItem.username}</span>
+                      {user?.isGuest && (
+                        <span className="guest-hint">🔒 Logga in för att skicka DM</span>
+                      )}
                     </div>
                   ))
                 )}

@@ -23,18 +23,15 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response<Chann
 		const output = await db.send(command)
 		const allChannels: ChannelItem[] = output.Items as ChannelItem[] || []
 		
-		// Filtrera låsta kanaler om användaren inte är inloggad
+		// Gäster och inloggade användare ser alla kanaler (även låsta)
+		// Men gäster kan bara läsa/skriva i öppna kanaler
 		const isAuthenticated = req.user !== undefined
 		console.log('req.user:', req.user)
 		console.log('isAuthenticated:', isAuthenticated)
 		console.log('allChannels count:', allChannels.length)
 		
-		const channels = isAuthenticated 
-			? allChannels  // Inloggade användare ser alla kanaler
-			: allChannels.filter(channel => !channel.isLocked)  // Gäster ser bara öppna kanaler
-		
-		console.log(`Found ${channels.length} channels (${isAuthenticated ? 'authenticated' : 'guest'} user)`)
-		res.send(channels)
+		console.log(`Found ${allChannels.length} channels (${isAuthenticated ? 'authenticated' : 'guest'} user)`)
+		res.send(allChannels)
 
 	} catch(error) {
 		console.log(`channels.ts GET fel:`, (error as any)?.message)

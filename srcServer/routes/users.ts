@@ -2,19 +2,16 @@ import express from 'express'
 import type { Router, Request, Response } from 'express'
 import { DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { db, tableName } from '../data/dynamoDb.js';
-import { authMiddleware } from '../data/auth.js';
+import { authMiddleware, optionalAuthMiddleware } from '../data/auth.js';
 import type { UserItem } from '../data/types.js';
 
 const router: Router = express.Router();
 
-// GET /api/users - hämta lista över alla användare (bara för inloggade användare)
-router.get('/', authMiddleware, async (req: Request<{}, { users: Array<{ username: string }> } | { error: string }>, res: Response<{ users: Array<{ username: string }> } | { error: string }>) => {
+// GET /api/users - hämta lista över alla användare (tillgängligt för alla, inklusive gäster)
+router.get('/', optionalAuthMiddleware, async (req: Request<{}, { users: Array<{ username: string }> } | { error: string }>, res: Response<{ users: Array<{ username: string }> } | { error: string }>) => {
     const currentUserId = req.user?.userId
-    console.log(`GET /api/users - listing all users (requested by ${currentUserId})`)
-
-    if (!currentUserId) {
-        return res.status(401).send({ error: 'Not authenticated' })
-    }
+    const isAuthenticated = req.user !== undefined
+    console.log(`GET /api/users - listing all users (requested by ${isAuthenticated ? currentUserId : 'guest'})`)
 
     try {
         const command = new ScanCommand({
@@ -31,9 +28,13 @@ router.get('/', authMiddleware, async (req: Request<{}, { users: Array<{ usernam
         // Returnera bara username, inte lösenord eller annan känslig data
         const userList = users
             .filter(user => {
-                // Exkludera den nuvarande användaren från listan
-                const userId = user.PK.replace('USER#', '')
-                return userId !== currentUserId
+                // Exkludera den nuvarande användaren från listan (om inloggad)
+                if (isAuthenticated && currentUserId) {
+                    const userId = user.PK.replace('USER#', '')
+                    return userId !== currentUserId
+                }
+                // Gäster ser alla användare
+                return true
             })
             .map(user => ({
                 username: user.username

@@ -12,13 +12,20 @@ function ChatViewPage() {
   const [loading, setLoading] = useState(true)
   const [chatTitle, setChatTitle] = useState('')
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [isChannelLocked, setIsChannelLocked] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
-    loadMessages(true) // Initial load
+    // Förhindra gäster från att komma åt DM-sidor
+    if (type === 'dm' && user?.isGuest) {
+      navigate('/chat')
+      return
+    }
+    
     loadChatTitle()
+    loadMessages(true) // Initial load
     
     // Automatisk uppdatering var 5:e sekund
     const interval = setInterval(() => {
@@ -27,7 +34,14 @@ function ChatViewPage() {
     
     // Rensa interval när komponenten unmountas
     return () => clearInterval(interval)
-  }, [type, id])
+  }, [type, id, user, navigate])
+
+  // Separata useEffect för att kontrollera låsta kanaler efter att isChannelLocked är satt
+  useEffect(() => {
+    if (type === 'channel' && user?.isGuest && isChannelLocked) {
+      navigate('/chat')
+    }
+  }, [type, user, isChannelLocked, navigate])
 
   const loadChatTitle = async () => {
     try {
@@ -36,16 +50,24 @@ function ChatViewPage() {
         const conversations = await getConversations()
         const channel = conversations.find(conv => conv.type === 'channel' && conv.id === id)
         setChatTitle(channel ? channel.name : 'Kanal')
+        setIsChannelLocked(channel?.isLocked || false)
       } else {
         setChatTitle(id) // Username för DM
+        setIsChannelLocked(false)
       }
     } catch (error) {
       console.error('Kunde inte ladda chat-titel:', error)
       setChatTitle(type === 'channel' ? 'Kanal' : id)
+      setIsChannelLocked(false)
     }
   }
 
   const loadMessages = async (isInitialLoad = false) => {
+    // Förhindra gäster från att ladda meddelanden i låsta kanaler
+    if (type === 'channel' && user?.isGuest && isChannelLocked) {
+      return
+    }
+    
     try {
       if (isInitialLoad) {
         setLoading(true)
@@ -78,9 +100,22 @@ function ChatViewPage() {
     if (!newMessage.trim() || !user) return
     
     // Gäster kan bara skicka meddelanden i kanaler, inte DM
+    // (Detta borde inte hända eftersom gäster inte kan komma åt DM-sidan, men extra säkerhet)
     if (type === 'dm' && user.isGuest) {
-      alert('Du måste vara inloggad för att skicka direktmeddelanden')
+      console.error('Guest user tried to send DM - this should not be possible')
+      navigate('/chat')
       return
+    }
+
+    // Förhindra gäster från att skicka meddelanden i låsta kanaler
+    if (type === 'channel' && user.isGuest) {
+      const conversations = await getConversations()
+      const channel = conversations.find(conv => conv.type === 'channel' && conv.id === id)
+      if (channel?.isLocked) {
+        console.error('Guest user tried to send message in locked channel')
+        navigate('/chat')
+        return
+      }
     }
 
     const messageText = newMessage.trim()
@@ -165,11 +200,20 @@ function ChatViewPage() {
         <input
           type="text"
           className="message-input"
-          placeholder="Skriv ett meddelande..."
+          placeholder={
+            user?.isGuest && isChannelLocked 
+              ? 'Logga in för att skicka meddelanden i låsta kanaler' 
+              : 'Skriv ett meddelande...'
+          }
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
+          disabled={user?.isGuest && isChannelLocked}
         />
-        <button type="submit" className="send-button">
+        <button 
+          type="submit" 
+          className="send-button"
+          disabled={user?.isGuest && isChannelLocked}
+        >
           Skicka
         </button>
       </form>

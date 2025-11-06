@@ -3,13 +3,41 @@ import type { Router, Request, Response } from 'express'
 import { QueryCommand, PutCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { db, tableName } from '../data/dynamoDb.js';
 import type { MessageItem, MessageBody } from '../data/types.js';
+import { optionalAuthMiddleware } from '../data/auth.js';
 
 const router: Router = express.Router();
 
 // GET /api/channels/:id/messages - hämta meddelanden från en kanal
-router.get('/:channelId/messages', async (req: Request<{ channelId: string }>, res: Response<MessageItem[]>) => {
+router.get('/:channelId/messages', optionalAuthMiddleware, async (req: Request<{ channelId: string }>, res: Response<MessageItem[]>) => {
 	const { channelId } = req.params
-	console.log(`GET /api/channels/${channelId}/messages - listing messages`)
+	const isAuthenticated = req.user !== undefined
+	console.log(`GET /api/channels/${channelId}/messages - listing messages (${isAuthenticated ? 'authenticated' : 'guest'} user)`)
+
+	// Kontrollera om kanalen är låst och användaren är gäst
+	if (!isAuthenticated) {
+		const channelCommand = new ScanCommand({
+			TableName: tableName,
+			FilterExpression: 'PK = :pk AND SK = :sk',
+			ExpressionAttributeValues: {
+				':pk': 'CHANNEL#' + channelId,
+				':sk': 'PROFILE'
+			}
+		})
+		
+		try {
+			const channelResult = await db.send(channelCommand)
+			if (channelResult.Items && channelResult.Items.length > 0) {
+				const channel = channelResult.Items[0] as { isLocked?: boolean }
+				if (channel.isLocked) {
+					console.log(`Guest user tried to access locked channel ${channelId}`)
+					return res.status(403).send([])
+				}
+			}
+		} catch (err) {
+			console.log(`Could not verify channel lock status: ${(err as Error).message}`)
+			// Fortsätt med att ladda meddelanden om vi inte kan verifiera
+		}
+	}
 
 	const command = new QueryCommand({
 		TableName: tableName,
@@ -61,11 +89,11 @@ router.get('/:channelId/messages', async (req: Request<{ channelId: string }>, r
 		}))
 		
 		console.log(`Found ${messagesWithUsernames.length} messages for channel ${channelId}`)
-		res.send(messagesWithUsernames)
+		return res.send(messagesWithUsernames)
 
 	} catch(error) {
 		console.log(`messages.ts GET fel:`, (error as any)?.message)
-		res.status(500).send([])
+		return res.status(500).send([])
 	}
 })
 
@@ -77,6 +105,32 @@ router.post('/:channelId/messages', async (req: Request<{ channelId: string }, {
 
 	if (!body.content || !body.senderId) {
 		return res.status(400).send({ success: false });
+	}
+
+	// Kontrollera om kanalen är låst och om användaren är gäst
+	const isAuthenticated = req.user !== undefined
+	if (!isAuthenticated) {
+		// Hämta kanalen för att kontrollera om den är låst
+		const channelCommand = new ScanCommand({
+			TableName: tableName,
+			FilterExpression: 'begins_with(PK, :value) AND channelId = :channelId',
+			ExpressionAttributeValues: {
+				':value': 'CHANNEL#',
+				':channelId': channelId
+			}
+		})
+		
+		try {
+			const channelResult = await db.send(channelCommand)
+			if (channelResult.Items && channelResult.Items.length > 0) {
+				const channel = channelResult.Items[0] as { isLocked?: boolean }
+				if (channel.isLocked) {
+					return res.status(403).send({ success: false })
+				}
+			}
+		} catch (err) {
+			console.log(`Could not verify channel lock status`)
+		}
 	}
 
 	const newMessageId = crypto.randomUUID()

@@ -442,6 +442,16 @@
   border-color: var(--border-color);
 }
 
+.user-item-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.user-item-disabled:hover {
+  background-color: transparent;
+  border-color: transparent;
+}
+
 .user-avatar {
   width: 40px;
   height: 40px;
@@ -459,6 +469,14 @@
   color: var(--text-color);
   font-size: 1rem;
   font-weight: 500;
+  flex: 1;
+}
+
+.guest-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-left: auto;
 }
 
 .no-results {

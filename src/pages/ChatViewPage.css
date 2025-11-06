@@ -1,5 +1,7 @@
 .chat-view {
   height: 100vh;
+  max-width: min(900px, 90vw);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
@@ -100,6 +102,12 @@
 .message-input:focus {
   outline: none;
   border-color: var(--accent-blue);
+}
+
+.message-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-tertiary);
 }
 
 .send-button {

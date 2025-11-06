@@ -28,10 +28,9 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response<Conve
         const channelsResult = await db.send(channelsCommand)
         const allChannels = channelsResult.Items || []
         
-        // Filtrera låsta kanaler för gäster
-        const visibleChannels = isAuthenticated 
-            ? allChannels  // Inloggade användare ser alla kanaler
-            : allChannels.filter(channel => !channel.isLocked)  // Gäster ser bara öppna kanaler
+        // Gäster och inloggade användare ser alla kanaler (även låsta)
+        // Men gäster kan bara läsa/skriva i öppna kanaler
+        const visibleChannels = allChannels
 
         // Lägg till kanaler i conversations
         for (const channel of visibleChannels) {
@@ -44,52 +43,75 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response<Conve
             })
         }
 
-        // 2. Hämta DM-konversationer (bara för inloggade användare)
-        if (isAuthenticated && currentUserId) {
-            const dmCommand = new ScanCommand({
+        // 2. Hämta DM-konversationer (bara för inloggade användare med giltig JWT)
+        // Kontrollera att userId inte är en gäst-ID (börjar med GUEST_) och verifiera att användaren finns i DB
+        const isRealUser = isAuthenticated && currentUserId && !currentUserId.startsWith('GUEST_')
+        if (isRealUser) {
+            // Verifiera att användaren faktiskt finns i databasen
+            const verifyUserCommand = new ScanCommand({
                 TableName: tableName,
-                FilterExpression: 'begins_with(PK, :value) AND messageType = :dmType AND (senderId = :currentUser OR recipientId = :currentUser)',
+                FilterExpression: 'begins_with(PK, :value) AND PK = :userPk',
                 ExpressionAttributeValues: {
-                    ':value': 'MESSAGE#',
-                    ':dmType': 'dm',
-                    ':currentUser': currentUserId
+                    ':value': 'USER#',
+                    ':userPk': 'USER#' + currentUserId
                 }
             })
-
-            const dmResult = await db.send(dmCommand)
-            const dmMessages = dmResult.Items || []
             
-            // Gruppera DM per användare
-            const dmUsers = new Set<string>()
-            for (const message of dmMessages) {
-                const otherUserId = message.senderId === currentUserId ? message.recipientId : message.senderId
-                if (otherUserId) {
-                    dmUsers.add(otherUserId)
-                }
-            }
+            try {
+                const verifyResult = await db.send(verifyUserCommand)
+                // Om användaren inte finns i DB, är det en gäst eller ogiltig användare
+                if (!verifyResult.Items || verifyResult.Items.length === 0) {
+                    console.log(`User ${currentUserId} not found in database, skipping DM conversations`)
+                } else {
+                    // Användaren finns i DB, hämta DM-konversationer
+                    const dmCommand = new ScanCommand({
+                        TableName: tableName,
+                        FilterExpression: 'begins_with(PK, :value) AND messageType = :dmType AND (senderId = :currentUser OR recipientId = :currentUser)',
+                        ExpressionAttributeValues: {
+                            ':value': 'MESSAGE#',
+                            ':dmType': 'dm',
+                            ':currentUser': currentUserId
+                        }
+                    })
 
-            // Hämta användarnamn för DM-användare
-            for (const userId of dmUsers) {
-                const userCommand = new ScanCommand({
-                    TableName: tableName,
-                    FilterExpression: 'begins_with(PK, :value) AND PK = :userPk',
-                    ExpressionAttributeValues: {
-                        ':value': 'USER#',
-                        ':userPk': 'USER#' + userId
+                    const dmResult = await db.send(dmCommand)
+                    const dmMessages = dmResult.Items || []
+                    
+                    // Gruppera DM per användare
+                    const dmUsers = new Set<string>()
+                    for (const message of dmMessages) {
+                        const otherUserId = message.senderId === currentUserId ? message.recipientId : message.senderId
+                        if (otherUserId) {
+                            dmUsers.add(otherUserId)
+                        }
                     }
-                })
 
-                const userResult = await db.send(userCommand)
-                if (userResult.Items && userResult.Items.length > 0) {
-                    const user = userResult.Items[0]
-                    if (user) {
-                        conversations.push({
-                            type: 'dm',
-                            id: user.username || 'unknown',
-                            name: user.username || 'Unknown User'
+                    // Hämta användarnamn för DM-användare
+                    for (const userId of dmUsers) {
+                        const userCommand = new ScanCommand({
+                            TableName: tableName,
+                            FilterExpression: 'begins_with(PK, :value) AND PK = :userPk',
+                            ExpressionAttributeValues: {
+                                ':value': 'USER#',
+                                ':userPk': 'USER#' + userId
+                            }
                         })
+
+                        const userResult = await db.send(userCommand)
+                        if (userResult.Items && userResult.Items.length > 0) {
+                            const user = userResult.Items[0]
+                            if (user) {
+                                conversations.push({
+                                    type: 'dm',
+                                    id: user.username || 'unknown',
+                                    name: user.username || 'Unknown User'
+                                })
+                            }
+                        }
                     }
                 }
+            } catch (verifyError) {
+                console.log(`Could not verify user: ${(verifyError as Error).message}`)
             }
         }
 
