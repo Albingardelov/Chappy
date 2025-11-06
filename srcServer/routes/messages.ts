@@ -1,6 +1,6 @@
 import express from 'express'
 import type { Router, Request, Response } from 'express'
-import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, PutCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { db, tableName } from '../data/dynamoDb.js';
 import type { MessageItem, MessageBody } from '../data/types.js';
 
@@ -28,8 +28,40 @@ router.get('/:channelId/messages', async (req: Request<{ channelId: string }>, r
 		// Sortera efter timestamp (äldsta först)
 		messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 		
-		console.log(`Found ${messages.length} messages for channel ${channelId}`)
-		res.send(messages)
+		// Hämta användarnamn för alla unika senderId
+		const senderIds = [...new Set(messages.map(m => m.senderId))]
+		const userMap = new Map<string, string>()
+		
+		for (const userId of senderIds) {
+			const userCommand = new ScanCommand({
+				TableName: tableName,
+				FilterExpression: 'PK = :pk',
+				ExpressionAttributeValues: {
+					':pk': 'USER#' + userId
+				}
+			})
+			
+			try {
+				const userResult = await db.send(userCommand)
+				if (userResult.Items && userResult.Items.length > 0) {
+					const user = userResult.Items[0] as { username?: string }
+					if (user && user.username) {
+						userMap.set(userId, user.username)
+					}
+				}
+			} catch (err) {
+				console.log(`Could not fetch username for userId ${userId}`)
+			}
+		}
+		
+		// Lägg till senderUsername till varje meddelande
+		const messagesWithUsernames = messages.map(msg => ({
+			...msg,
+			senderUsername: userMap.get(msg.senderId) || 'Unknown'
+		}))
+		
+		console.log(`Found ${messagesWithUsernames.length} messages for channel ${channelId}`)
+		res.send(messagesWithUsernames)
 
 	} catch(error) {
 		console.log(`messages.ts GET fel:`, (error as any)?.message)

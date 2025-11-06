@@ -1,6 +1,6 @@
 import './MessageBubble.css'
 
-function MessageBubble({ message, isOwn }) {
+function MessageBubble({ message, isOwn, showSender, currentUsername }) {
   const formatTime = (timestamp) => {
     if (!timestamp) return ''
     const date = new Date(timestamp)
@@ -10,8 +10,17 @@ function MessageBubble({ message, isOwn }) {
     })
   }
 
+  const senderName = isOwn 
+    ? (currentUsername || 'Du')
+    : (message.senderUsername || 'Unknown')
+
   return (
     <div className={`message-bubble ${isOwn ? 'message-own' : 'message-other'}`}>
+      {showSender && (
+        <div className="message-sender">
+          {senderName}
+        </div>
+      )}
       <div className="message-content">
         {message.content}
       </div>

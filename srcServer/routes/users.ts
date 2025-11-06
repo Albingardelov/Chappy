@@ -7,6 +7,47 @@ import type { UserItem } from '../data/types.js';
 
 const router: Router = express.Router();
 
+// GET /api/users - hämta lista över alla användare (bara för inloggade användare)
+router.get('/', authMiddleware, async (req: Request<{}, { users: Array<{ username: string }> } | { error: string }>, res: Response<{ users: Array<{ username: string }> } | { error: string }>) => {
+    const currentUserId = req.user?.userId
+    console.log(`GET /api/users - listing all users (requested by ${currentUserId})`)
+
+    if (!currentUserId) {
+        return res.status(401).send({ error: 'Not authenticated' })
+    }
+
+    try {
+        const command = new ScanCommand({
+            TableName: tableName,
+            FilterExpression: 'begins_with(PK, :value)',
+            ExpressionAttributeValues: {
+                ':value': 'USER#'
+            }
+        })
+
+        const output = await db.send(command)
+        const users: UserItem[] = output.Items as UserItem[] || []
+        
+        // Returnera bara username, inte lösenord eller annan känslig data
+        const userList = users
+            .filter(user => {
+                // Exkludera den nuvarande användaren från listan
+                const userId = user.PK.replace('USER#', '')
+                return userId !== currentUserId
+            })
+            .map(user => ({
+                username: user.username
+            }))
+
+        console.log(`Found ${userList.length} users`)
+        return res.send({ users: userList })
+
+    } catch(error) {
+        console.log(`users.ts GET fel:`, (error as any)?.message)
+        return res.status(500).send({ error: 'Could not fetch users' })
+    }
+})
+
 // DELETE /api/users - ta bort användarens eget konto (VG-funktion)
 router.delete('/', authMiddleware, async (req: Request<{}, { success: boolean; message?: string }>, res: Response<{ success: boolean; message?: string }>) => {
     const currentUserId = req.user?.userId

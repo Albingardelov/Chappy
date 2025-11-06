@@ -128,13 +128,27 @@ function ChatViewPage() {
       </div>
       
       <div className="messages-container">
-        {messages.map((message) => (
-          <MessageBubble
-            key={message.PK}
-            message={message}
-            isOwn={message.senderId === user?.userId}
-          />
-        ))}
+        {messages.map((message, index) => {
+          const isOwn = message.senderId === user?.userId
+          const prevMessage = index > 0 ? messages[index - 1] : null
+          const isSameSender = prevMessage && prevMessage.senderId === message.senderId
+          // Visa avsändare om det är första meddelandet från denna person, eller om det är en kanal (gruppchatt)
+          const showSender = type === 'channel' && (!isSameSender || index === 0)
+          
+          return (
+            <div 
+              key={message.PK}
+              className={isSameSender ? 'same-sender-group' : ''}
+            >
+              <MessageBubble
+                message={message}
+                isOwn={isOwn}
+                showSender={showSender}
+                currentUsername={user?.username}
+              />
+            </div>
+          )
+        })}
         {loadingMessages && (
           <div className="loading-indicator">
             <div className="loading-dots">

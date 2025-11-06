@@ -37,6 +37,7 @@ export interface MessageItem {
 	channelId: string;
 	timestamp: string;
 	senderId: string;
+	senderUsername?: string; // Användarnamn (läggs till i backend)
 	content: string;
 	messageType: 'channel' | 'dm';
 	recipientId?: string; // För DM

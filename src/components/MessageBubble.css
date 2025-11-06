@@ -1,9 +1,18 @@
 .message-bubble {
   max-width: 70%;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.message-bubble:not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+/* Mer avstånd när avsändare ändras */
+.message-bubble + .message-bubble:not(.same-sender) {
+  margin-top: 0.75rem;
 }
 
 .message-own {
@@ -34,6 +43,14 @@
   background-color: var(--message-bg-other);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
+}
+
+.message-sender {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  padding: 0 0.5rem;
+  font-weight: 500;
 }
 
 .message-time {

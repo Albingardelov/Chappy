@@ -25,7 +25,14 @@ function LoginPage() {
       await login(formData.username, formData.password)
       navigate('/chat')
     } catch (err) {
-      setError('Inloggning misslyckades')
+      console.error('Login error:', err)
+      // Visa mer specifikt felmeddelande om det finns
+      const errorMessage = err.message || 'Inloggning misslyckades'
+      setError(errorMessage.includes('401') || errorMessage.includes('Unauthorized') 
+        ? 'Fel användarnamn eller lösenord' 
+        : errorMessage.includes('Network') || errorMessage.includes('Failed to fetch')
+        ? 'Kunde inte ansluta till servern'
+        : 'Inloggning misslyckades')
     } finally {
       setLoading(false)
     }

@@ -61,7 +61,14 @@
   padding: 1rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+}
+
+.same-sender-group {
+  margin-bottom: 0.25rem;
+}
+
+.same-sender-group:not(:last-child) {
+  margin-bottom: 0.75rem;
 }
 
 .loading {

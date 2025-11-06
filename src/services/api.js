@@ -22,7 +22,18 @@ const apiCall = async (endpoint, options = {}) => {
   const response = await fetch(url, config)
   
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`)
+    // Försök hämta felmeddelande från response
+    let errorMessage = `API Error: ${response.status}`
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.message || errorData.error || errorMessage
+    } catch (e) {
+      // Om response inte är JSON, använd status text
+      errorMessage = response.statusText || errorMessage
+    }
+    const error = new Error(errorMessage)
+    error.status = response.status
+    throw error
   }
   
   return response.json()
@@ -90,6 +101,11 @@ export const sendDMMessage = async (recipientUsername, content) => {
 }
 
 // User endpoints
+export const getUsers = async () => {
+  const response = await apiCall('/users')
+  return response.users || []
+}
+
 export const deleteUser = async () => {
   return apiCall('/users', {
     method: 'DELETE'

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
-import { getConversations, createChannel, deleteChannel, deleteUser } from '../services/api'
+import { getConversations, createChannel, deleteChannel, deleteUser, getUsers } from '../services/api'
 import ConversationItem from '../components/ConversationItem'
 import { getInitials, getColorFromName } from '../utils/initials'
+import userIcon from '../../assets/square-user.svg'
 import './ChatOverviewPage.css'
 
 function ChatOverviewPage() {
@@ -17,6 +18,10 @@ function ChatOverviewPage() {
   const [newChannelName, setNewChannelName] = useState('')
   const [newChannelDescription, setNewChannelDescription] = useState('')
   const [newChannelLocked, setNewChannelLocked] = useState(false)
+  const [showUserSearch, setShowUserSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [availableUsers, setAvailableUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -96,6 +101,32 @@ function ChatOverviewPage() {
     navigate(`/chat/${conversation.type}/${conversation.id}`)
   }
 
+  const handleSearchUsers = async () => {
+    if (!user || user.isGuest) return
+    
+    setShowUserSearch(true)
+    setLoadingUsers(true)
+    try {
+      const users = await getUsers()
+      setAvailableUsers(users)
+    } catch (error) {
+      console.error('Kunde inte ladda användare:', error)
+      setAvailableUsers([])
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
+  const handleStartDM = (username) => {
+    setShowUserSearch(false)
+    setSearchQuery('')
+    navigate(`/chat/dm/${username}`)
+  }
+
+  const filteredUsers = availableUsers.filter(u => 
+    u.username.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   if (loading) {
     return (
       <div className="chat-overview">
@@ -146,15 +177,24 @@ function ChatOverviewPage() {
         ))}
       </div>
 
-      {/* Create Channel Button - only for authenticated users */}
+      {/* Action Buttons - only for authenticated users */}
       {user && !user.isGuest && (
-        <button 
-          className="create-channel-btn"
-          onClick={() => setShowCreateChannel(true)}
-          title="Skapa ny kanal"
-        >
-          +
-        </button>
+        <div className="action-buttons">
+          <button 
+            className="search-users-btn"
+            onClick={handleSearchUsers}
+            title="Sök användare"
+          >
+            <img src={userIcon} alt="Sök användare" />
+          </button>
+          <button 
+            className="create-channel-btn"
+            onClick={() => setShowCreateChannel(true)}
+            title="Skapa ny kanal"
+          >
+            +
+          </button>
+        </div>
       )}
 
       {/* Create Channel Modal */}
@@ -283,6 +323,62 @@ function ChatOverviewPage() {
                 className="delete-btn"
               >
                 🗑️ Ta bort kanal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Search Modal */}
+      {showUserSearch && user && !user.isGuest && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Sök användare</h2>
+            <div className="search-container">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Sök efter användarnamn..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+            
+            {loadingUsers ? (
+              <div className="loading">Laddar användare...</div>
+            ) : (
+              <div className="users-list">
+                {filteredUsers.length === 0 ? (
+                  <div className="no-results">
+                    {searchQuery ? 'Inga användare hittades' : 'Inga användare tillgängliga'}
+                  </div>
+                ) : (
+                  filteredUsers.map((userItem) => (
+                    <div
+                      key={userItem.username}
+                      className="user-item"
+                      onClick={() => handleStartDM(userItem.username)}
+                    >
+                      <div 
+                        className="user-avatar"
+                        style={{ backgroundColor: getColorFromName(userItem.username) }}
+                      >
+                        {getInitials(userItem.username, 2)}
+                      </div>
+                      <span className="user-name">{userItem.username}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            
+            <div className="modal-actions">
+              <button type="button" onClick={() => {
+                setShowUserSearch(false)
+                setSearchQuery('')
+              }}>
+                Stäng
               </button>
             </div>
           </div>
