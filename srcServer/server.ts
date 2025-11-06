@@ -59,14 +59,16 @@ app.get('/api/protected', authMiddleware, (req: Request, res: Response) => {
 })
 
 // Servera statiska filer från dist-mappen (byggd frontend)
-const distPath = path.join(__dirname, '../../dist')
+// Använd process.cwd() för att få root-mappen oavsett var koden körs från
+const distPath = path.join(process.cwd(), 'dist')
 app.use(express.static(distPath))
 
 // Alla routes som inte är /api/* ska servera index.html (för React Router)
 // Express 5 kräver en annan syntax för catch-all routes
 app.get(/^(?!\/api).*/, (req: Request, res: Response) => {
 	// Servera index.html för alla routes som inte börjar med /api
-	return res.sendFile(path.join(distPath, 'index.html'))
+	const indexPath = path.join(distPath, 'index.html')
+	return res.sendFile(indexPath)
 })
 
 app.listen(port, () => {
