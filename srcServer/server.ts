@@ -63,12 +63,9 @@ const distPath = path.join(__dirname, '../../dist')
 app.use(express.static(distPath))
 
 // Alla routes som inte är /api/* ska servera index.html (för React Router)
-app.get('*', (req: Request, res: Response) => {
-	// Om det är en API-route, returnera 404
-	if (req.path.startsWith('/api')) {
-		return res.status(404).json({ error: 'API route not found' })
-	}
-	// Annars servera index.html
+// Express 5 kräver en annan syntax för catch-all routes
+app.get(/^(?!\/api).*/, (req: Request, res: Response) => {
+	// Servera index.html för alla routes som inte börjar med /api
 	return res.sendFile(path.join(distPath, 'index.html'))
 })
 

@@ -11,7 +11,7 @@
     "dev": "vite",
     "build-frontend": "vite build",
     "predeploy": "npm run build-frontend && npm run build-server",
-    "start": "node --env-file .env ./distServer/server.js",
+    "start": "node ./distServer/server.js",
     "preview": "vite preview"
   },
   "dependencies": {
