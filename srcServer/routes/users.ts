@@ -1,6 +1,6 @@
 import express from 'express'
 import type { Router, Request, Response } from 'express'
-import { DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { db, tableName } from '../data/dynamoDb.js';
 import { authMiddleware, optionalAuthMiddleware } from '../data/auth.js';
 import type { UserItem } from '../data/types.js';
@@ -59,26 +59,23 @@ router.delete('/', authMiddleware, async (req: Request<{}, { success: boolean; m
     }
 
     try {
-        // Hitta användarens PK via userId
-        const findUserCommand = new ScanCommand({
+        // Använd PK direkt: 'USER#' + userId (userId kommer från JWT)
+        const userPK = 'USER#' + currentUserId
+
+        // Kontrollera att användaren finns innan vi försöker ta bort
+        const checkUserCommand = new GetCommand({
             TableName: tableName,
-            FilterExpression: 'begins_with(PK, :value) AND userId = :userId',
-            ExpressionAttributeValues: {
-                ':value': 'USER#',
-                ':userId': currentUserId
+            Key: {
+                PK: userPK,
+                SK: 'PROFILE'
             }
         })
 
-        const userResult = await db.send(findUserCommand)
-        if (!userResult.Items || userResult.Items.length === 0) {
+        const userResult = await db.send(checkUserCommand)
+        if (!userResult.Item) {
+            console.log(`User not found: ${userPK}`)
             return res.status(404).send({ success: false, message: 'User not found' })
         }
-
-        const user = userResult.Items[0] as UserItem
-        if (!user) {
-            return res.status(404).send({ success: false, message: 'User not found' })
-        }
-        const userPK = user.PK
 
         // Ta bort användarens profil
         const deleteUserCommand = new DeleteCommand({

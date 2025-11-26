@@ -15,6 +15,8 @@ function ChatOverviewPage() {
   const [showDeleteChannel, setShowDeleteChannel] = useState(false)
   const [channelToDelete, setChannelToDelete] = useState(null)
   const [deleteError, setDeleteError] = useState('')
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState('')
   const [newChannelName, setNewChannelName] = useState('')
   const [newChannelDescription, setNewChannelDescription] = useState('')
   const [newChannelLocked, setNewChannelLocked] = useState(false)
@@ -45,17 +47,19 @@ function ChatOverviewPage() {
     navigate('/')
   }
 
-  const handleDeleteAccount = async () => {
-    if (window.confirm('Är du säker på att du vill ta bort ditt konto? Detta kan inte ångras.')) {
-      try {
-        await deleteUser()
-        logout()
-        navigate('/')
-        alert('Ditt konto har tagits bort.')
-      } catch (error) {
-        console.error('Kunde inte ta bort konto:', error)
-        alert('Kunde inte ta bort kontot. Försök igen.')
-      }
+  const handleDeleteAccountClick = () => {
+    setDeleteAccountError('')
+    setShowDeleteAccount(true)
+  }
+
+  const handleConfirmDeleteAccount = async () => {
+    try {
+      await deleteUser()
+      logout()
+      navigate('/')
+    } catch (error) {
+      console.error('Kunde inte ta bort konto:', error)
+      setDeleteAccountError('Kunde inte ta bort kontot. Försök igen.')
     }
   }
 
@@ -284,7 +288,7 @@ function ChatOverviewPage() {
             <div className="profile-actions">
               <button 
                 className="delete-account-btn"
-                onClick={handleDeleteAccount}
+                onClick={handleDeleteAccountClick}
               >
                 🗑️ Ta bort konto
               </button>
@@ -396,6 +400,49 @@ function ChatOverviewPage() {
                 setSearchQuery('')
               }}>
                 Stäng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteAccount && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Ta bort konto</h2>
+            <div className="delete-warning">
+              <div className="warning-icon">⚠️</div>
+              <div className="warning-text">
+                <p><strong>Är du säker på att du vill ta bort ditt konto?</strong></p>
+                <p>Detta kan inte ångras och all din data kommer att försvinna permanent.</p>
+              </div>
+            </div>
+            
+            {deleteAccountError && (
+              <div className="error-message">
+                <div className="error-icon">❌</div>
+                <div className="error-text">{deleteAccountError}</div>
+              </div>
+            )}
+            
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowDeleteAccount(false)
+                  setDeleteAccountError('')
+                }}
+                className="cancel-btn"
+              >
+                Avbryt
+              </button>
+              <button 
+                type="button" 
+                onClick={handleConfirmDeleteAccount}
+                className="delete-btn"
+              >
+                🗑️ Ta bort konto
               </button>
             </div>
           </div>
