@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../features/auth/useAuthStore'
-import { getConversations, createChannel, deleteChannel, deleteUser, getUsers } from '../services/api'
+import useConversationsStore from '../features/conversations/useConversationsStore'
+import { createChannel, deleteChannel, deleteUser, getUsers } from '../services/api'
 import ConversationItem from '../components/ConversationItem'
 import { getInitials, getColorFromName } from '../utils/initials'
 import userIcon from '../../assets/square-user.svg'
 import './ChatOverviewPage.css'
 
 function ChatOverviewPage() {
-  const [conversations, setConversations] = useState([])
-  const [loading, setLoading] = useState(true)
+  const conversations = useConversationsStore((state) => state.conversations)
+  const loading = useConversationsStore((state) => state.loading)
+  const loadConversations = useConversationsStore((state) => state.loadConversations)
+  const removeConversation = useConversationsStore((state) => state.removeConversation)
   const [showCreateChannel, setShowCreateChannel] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [showDeleteChannel, setShowDeleteChannel] = useState(false)
@@ -30,18 +33,7 @@ function ChatOverviewPage() {
 
   useEffect(() => {
     loadConversations()
-  }, [])
-
-  const loadConversations = async () => {
-    try {
-      const data = await getConversations()
-      setConversations(data)
-    } catch (error) {
-      console.error('Kunde inte ladda konversationer:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [loadConversations])
 
   const handleLogout = () => {
     logout()
@@ -92,10 +84,10 @@ function ChatOverviewPage() {
 
     try {
       await deleteChannel(channelToDelete.id)
+      removeConversation(channelToDelete.id, 'channel')
       setShowDeleteChannel(false)
       setChannelToDelete(null)
       setDeleteError('')
-      loadConversations() // Reload conversations
     } catch (error) {
       console.error('Kunde inte ta bort kanal:', error)
       setDeleteError('Kunde inte ta bort kanalen. Kontrollera att du är skaparen av kanalen.')
