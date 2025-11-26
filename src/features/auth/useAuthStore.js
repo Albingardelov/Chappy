@@ -1,14 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { create } from 'zustand'
 import { loginUser, registerUser } from '../../services/api'
 
-const AuthContext = createContext()
+const useAuthStore = create((set, get) => ({
+  user: null,
+  loading: true,
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Kontrollera om användaren är inloggad vid sidladdning
+  // Initialize auth state from localStorage
+  initialize: () => {
     const token = localStorage.getItem('token')
     const username = localStorage.getItem('username')
     if (token && username) {
@@ -16,17 +14,19 @@ export function AuthProvider({ children }) {
         // Dekoda JWT för att få userId
         const payload = JSON.parse(atob(token.split('.')[1]))
         const userId = payload.userId
-        setUser({ token, username, userId })
+        set({ user: { token, username, userId }, loading: false })
       } catch (error) {
         // Om token är ogiltig, ta bort den
         localStorage.removeItem('token')
         localStorage.removeItem('username')
+        set({ user: null, loading: false })
       }
+    } else {
+      set({ loading: false })
     }
-    setLoading(false)
-  }, [])
+  },
 
-  const login = async (username, password) => {
+  login: async (username, password) => {
     try {
       const response = await loginUser(username, password)
       const { token } = response
@@ -37,15 +37,15 @@ export function AuthProvider({ children }) {
       
       localStorage.setItem('token', token)
       localStorage.setItem('username', username)
-      setUser({ token, username, userId })
+      set({ user: { token, username, userId } })
       
       return response
     } catch (error) {
       throw error
     }
-  }
+  },
 
-  const register = async (username, email, password) => {
+  register: async (username, email, password) => {
     try {
       const response = await registerUser(username, email, password)
       const { token } = response
@@ -56,51 +56,32 @@ export function AuthProvider({ children }) {
       
       localStorage.setItem('token', token)
       localStorage.setItem('username', username)
-      setUser({ token, username, userId })
+      set({ user: { token, username, userId } })
       
       return response
     } catch (error) {
       throw error
     }
-  }
+  },
 
-  const logout = () => {
+  logout: () => {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
-    setUser(null)
-  }
+    set({ user: null })
+  },
 
-  const enterAsGuest = () => {
+  enterAsGuest: () => {
     // Generera ett unikt gäst-ID
     const guestId = 'GUEST_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    setUser({ 
-      username: 'Gäst', 
-      userId: guestId,
-      isGuest: true 
+    set({ 
+      user: { 
+        username: 'Gäst', 
+        userId: guestId,
+        isGuest: true 
+      } 
     })
   }
+}))
 
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    enterAsGuest,
-    loading
-  }
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
+export default useAuthStore
 

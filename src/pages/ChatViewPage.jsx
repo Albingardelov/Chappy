@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthContext'
+import useAuthStore from '../features/auth/useAuthStore'
 import { getChannelMessages, getDMMessages, sendChannelMessage, sendDMMessage, getConversations } from '../services/api'
 import MessageBubble from '../components/MessageBubble'
 import './ChatViewPage.css'
@@ -13,7 +13,7 @@ function ChatViewPage() {
   const [chatTitle, setChatTitle] = useState('')
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [isChannelLocked, setIsChannelLocked] = useState(false)
-  const { user } = useAuth()
+  const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
   const messagesEndRef = useRef(null)
 

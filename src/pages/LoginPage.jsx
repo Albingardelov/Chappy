@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthContext'
+import useAuthStore from '../features/auth/useAuthStore'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import './LoginPage.css'
@@ -13,7 +13,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login, enterAsGuest } = useAuth()
+  const login = useAuthStore((state) => state.login)
+  const enterAsGuest = useAuthStore((state) => state.enterAsGuest)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {

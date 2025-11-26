@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthContext'
+import useAuthStore from '../features/auth/useAuthStore'
 import { getConversations, createChannel, deleteChannel, deleteUser, getUsers } from '../services/api'
 import ConversationItem from '../components/ConversationItem'
 import { getInitials, getColorFromName } from '../utils/initials'
@@ -24,7 +24,8 @@ function ChatOverviewPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [availableUsers, setAvailableUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
-  const { user, logout } = useAuth()
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
 
   useEffect(() => {

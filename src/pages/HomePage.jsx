@@ -1,10 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/AuthContext'
+import useAuthStore from '../features/auth/useAuthStore'
 import Button from '../components/Button'
 import './HomePage.css'
 
 function HomePage() {
-  const { enterAsGuest } = useAuth()
+  const enterAsGuest = useAuthStore((state) => state.enterAsGuest)
   const navigate = useNavigate()
 
   return (
