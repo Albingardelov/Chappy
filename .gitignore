@@ -35,3 +35,9 @@ logs
 
 # Local development notes
 TODO.md
+
+# Large files that shouldn't be in repo
+assets/*.exe
+assets/*.msi
+assets/*.pptx
+assets/Del 3
