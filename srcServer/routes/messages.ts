@@ -98,17 +98,17 @@ router.get('/:channelId/messages', optionalAuthMiddleware, async (req: Request<{
 })
 
 // POST /api/channels/:id/messages - skicka meddelande till kanal
-router.post('/:channelId/messages', async (req: Request<{ channelId: string }, { success: boolean; messageId?: string }, MessageBody>, res: Response<{ success: boolean; messageId?: string }>) => {
+router.post('/:channelId/messages', optionalAuthMiddleware, async (req: Request<{ channelId: string }, { success: boolean; messageId?: string }, MessageBody>, res: Response<{ success: boolean; messageId?: string }>) => {
 	const { channelId } = req.params
 	const body = req.body
-	console.log(`POST /api/channels/${channelId}/messages - creating message`, body)
+	const isAuthenticated = req.user !== undefined
+	console.log(`POST /api/channels/${channelId}/messages - creating message (${isAuthenticated ? 'authenticated' : 'guest'} user)`, body)
 
 	if (!body.content || !body.senderId) {
 		return res.status(400).send({ success: false });
 	}
 
 	// Kontrollera om kanalen är låst och om användaren är gäst
-	const isAuthenticated = req.user !== undefined
 	if (!isAuthenticated) {
 		// Hämta kanalen för att kontrollera om den är låst
 		const channelCommand = new ScanCommand({
