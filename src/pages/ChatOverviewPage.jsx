@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../features/auth/useAuthStore'
 import useConversationsStore from '../features/conversations/useConversationsStore'
-import { createChannel, deleteChannel, deleteUser, getUsers } from '../services/api'
+import useUsersStore from '../features/users/useUsersStore'
+import { createChannel, deleteChannel, deleteUser } from '../services/api'
 import ConversationItem from '../components/ConversationItem'
 import { getInitials, getColorFromName } from '../utils/initials'
 import userIcon from '../../assets/square-user.svg'
@@ -25,8 +26,9 @@ function ChatOverviewPage() {
   const [newChannelLocked, setNewChannelLocked] = useState(false)
   const [showUserSearch, setShowUserSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [availableUsers, setAvailableUsers] = useState([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const availableUsers = useUsersStore((state) => state.users)
+  const loadingUsers = useUsersStore((state) => state.loading)
+  const loadUsers = useUsersStore((state) => state.loadUsers)
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
@@ -100,16 +102,7 @@ function ChatOverviewPage() {
 
   const handleSearchUsers = async () => {
     setShowUserSearch(true)
-    setLoadingUsers(true)
-    try {
-      const users = await getUsers()
-      setAvailableUsers(users)
-    } catch (error) {
-      console.error('Kunde inte ladda användare:', error)
-      setAvailableUsers([])
-    } finally {
-      setLoadingUsers(false)
-    }
+    await loadUsers()
   }
 
   const handleStartDM = (username) => {
