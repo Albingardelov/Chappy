@@ -103,7 +103,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 100;
+  z-index: 50;
 }
 
 .search-users-btn,

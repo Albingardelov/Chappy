@@ -1,15 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import useAuthStore from '../features/auth/useAuthStore'
-import { getChannelMessages, getDMMessages, sendChannelMessage, sendDMMessage, getConversations } from '../services/api'
+import useMessagesStore from '../features/messages/useMessagesStore'
+import { sendChannelMessage, sendDMMessage, getConversations } from '../services/api'
 import MessageBubble from '../components/MessageBubble'
 import './ChatViewPage.css'
 
 function ChatViewPage() {
   const { type, id } = useParams()
-  const [messages, setMessages] = useState([])
+  const messagesByConversation = useMessagesStore((state) => state.messagesByConversation)
+  const loadingStates = useMessagesStore((state) => state.loading)
+  const loadMessages = useMessagesStore((state) => state.loadMessages)
+  
+  const key = `${type}:${id}`
+  const messages = messagesByConversation[key] || []
+  const loading = loadingStates[key] || false
   const [newMessage, setNewMessage] = useState('')
-  const [loading, setLoading] = useState(true)
   const [chatTitle, setChatTitle] = useState('')
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [isChannelLocked, setIsChannelLocked] = useState(false)
@@ -17,31 +23,34 @@ function ChatViewPage() {
   const navigate = useNavigate()
   const messagesEndRef = useRef(null)
 
-  useEffect(() => {
-    // Förhindra gäster från att komma åt DM-sidor
-    if (type === 'dm' && user?.isGuest) {
-      navigate('/chat')
-      return
+  // Wrapper för att hantera gäst-behörigheter
+  const handleLoadMessages = useCallback(async (isInitialLoad = false) => {
+    // Förhindra gäster från att ladda meddelanden i låsta kanaler
+    // Kontrollera isChannelLocked direkt från conversations istället
+    if (type === 'channel' && user?.isGuest) {
+      try {
+        const conversations = await getConversations()
+        const channel = conversations.find(conv => conv.type === 'channel' && conv.id === id)
+        if (channel?.isLocked) {
+          return
+        }
+      } catch (error) {
+        console.error('Kunde inte kontrollera kanal:', error)
+      }
     }
     
-    loadChatTitle()
-    loadMessages(true) // Initial load
-    
-    // Automatisk uppdatering var 5:e sekund
-    const interval = setInterval(() => {
-      loadMessages(false) // Polling load
-    }, 5000)
-    
-    // Rensa interval när komponenten unmountas
-    return () => clearInterval(interval)
-  }, [type, id, user, navigate])
-
-  // Separata useEffect för att kontrollera låsta kanaler efter att isChannelLocked är satt
-  useEffect(() => {
-    if (type === 'channel' && user?.isGuest && isChannelLocked) {
-      navigate('/chat')
+    if (isInitialLoad) {
+      setLoadingMessages(false) // Store hanterar loading för initial load
+    } else {
+      setLoadingMessages(true)
     }
-  }, [type, user, isChannelLocked, navigate])
+    
+    await loadMessages(type, id, isInitialLoad)
+    
+    if (!isInitialLoad) {
+      setLoadingMessages(false)
+    }
+  }, [type, id, user, loadMessages])
 
   const loadChatTitle = async () => {
     try {
@@ -62,38 +71,31 @@ function ChatViewPage() {
     }
   }
 
-  const loadMessages = async (isInitialLoad = false) => {
-    // Förhindra gäster från att ladda meddelanden i låsta kanaler
-    if (type === 'channel' && user?.isGuest && isChannelLocked) {
+  useEffect(() => {
+    // Förhindra gäster från att komma åt DM-sidor
+    if (type === 'dm' && user?.isGuest) {
+      navigate('/chat')
       return
     }
     
-    try {
-      if (isInitialLoad) {
-        setLoading(true)
-      } else {
-        setLoadingMessages(true)
-      }
-      
-      let data = []
-      
-      if (type === 'channel') {
-        data = await getChannelMessages(id)
-      } else if (type === 'dm') {
-        data = await getDMMessages(id)
-      }
-      
-      setMessages(data)
-    } catch (error) {
-      console.error('Kunde inte ladda meddelanden:', error)
-    } finally {
-      if (isInitialLoad) {
-        setLoading(false)
-      } else {
-        setLoadingMessages(false)
-      }
+    loadChatTitle()
+    handleLoadMessages(true) // Initial load
+    
+    // Automatisk uppdatering var 5:e sekund
+    const interval = setInterval(() => {
+      handleLoadMessages(false) // Polling load
+    }, 5000)
+    
+    // Rensa interval när komponenten unmountas
+    return () => clearInterval(interval)
+  }, [type, id, user, navigate, handleLoadMessages])
+
+  // Separata useEffect för att kontrollera låsta kanaler efter att isChannelLocked är satt
+  useEffect(() => {
+    if (type === 'channel' && user?.isGuest && isChannelLocked) {
+      navigate('/chat')
     }
-  }
+  }, [type, user, isChannelLocked, navigate])
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
@@ -129,7 +131,7 @@ function ChatViewPage() {
       }
       
       // Ladda om meddelanden efter att ha skickat
-      loadMessages()
+      handleLoadMessages(false)
     } catch (error) {
       console.error('Kunde inte skicka meddelande:', error)
       // Återställ meddelandet om det misslyckades

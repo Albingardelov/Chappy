@@ -61,6 +61,7 @@
 
 .conversation-menu {
   position: relative;
+  z-index: 1001;
 }
 
 .menu-button {
@@ -86,7 +87,7 @@
   border: 1px solid var(--border-color);
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: 1001;
   min-width: 150px;
 }
 
